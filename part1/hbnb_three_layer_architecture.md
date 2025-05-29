@@ -33,6 +33,7 @@ User --> UserDAO
 Place --> PlaceDAO
 Review --> ReviewDAO
 Amenity --> AmenityDAO
+```  <!-- 👈 CLOSES the Mermaid block properly -->
 
 ## Layer Responsibilities
 
