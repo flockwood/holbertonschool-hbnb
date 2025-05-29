@@ -1,3 +1,10 @@
+# HBnB Three-Layer Architecture
+
+This diagram illustrates the layered architecture of the HBnB application using the facade pattern.
+
+## Diagram
+
+```mermaid
 classDiagram
 package PresentationLayer {
     class ServiceAPI {
