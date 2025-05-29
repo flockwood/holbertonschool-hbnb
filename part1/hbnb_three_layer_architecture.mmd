@@ -1,0 +1,37 @@
+classDiagram
+package PresentationLayer {
+    class ServiceAPI {
+        <<interface>>
+        +create_user()
+        +search_places()
+        +submit_review()
+    }
+}
+
+package BusinessLogicLayer {
+    class User
+    class Place
+    class Review
+    class Amenity
+    class HBnBFacade {
+        +handle_user_creation()
+        +handle_place_search()
+        +handle_review_submission()
+    }
+    ServiceAPI --> HBnBFacade : uses
+}
+
+package PersistenceLayer {
+    class UserDAO
+    class PlaceDAO
+    class ReviewDAO
+    class AmenityDAO
+    HBnBFacade --> User
+    HBnBFacade --> Place
+    HBnBFacade --> Review
+    HBnBFacade --> Amenity
+    User --> UserDAO
+    Place --> PlaceDAO
+    Review --> ReviewDAO
+    Amenity --> AmenityDAO
+}
