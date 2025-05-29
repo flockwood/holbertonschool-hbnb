@@ -1,5 +1,7 @@
 # HBnB Three-Layer Architecture (Facade Pattern)
 
+## Diagram
+
 ```mermaid
 classDiagram
 class ServiceAPI {
@@ -33,20 +35,3 @@ User --> UserDAO
 Place --> PlaceDAO
 Review --> ReviewDAO
 Amenity --> AmenityDAO
-```  <!-- 👈 CLOSES the Mermaid block properly -->
-
-## Layer Responsibilities
-
-- **Presentation Layer**:
-  - `ServiceAPI`: Handles user-facing methods and calls the facade.
-
-- **Business Logic Layer**:
-  - `HBnBFacade`: Unified interface that encapsulates business logic.
-  - `User`, `Place`, `Review`, `Amenity`: Core model entities.
-
-- **Persistence Layer**:
-  - `UserDAO`, `PlaceDAO`, etc.: Communicate directly with the database.
-
-## Facade Pattern
-
-The `HBnBFacade` acts as the bridge between the Presentation and Business layers, simplifying how external services interact with internal logic.
