@@ -1,47 +1,31 @@
-# HBnB Three-Layer Architecture (Facade Pattern)
+flowchart TD
 
-## Diagram
+subgraph Presentation_Layer [Presentation Layer]
+    A[ServiceAPI]
+end
 
-```mermaid
-classDiagram
+subgraph Business_Logic_Layer [Business Logic Layer]
+    B[HBnBFacade]
+    C1[User]
+    C2[Place]
+    C3[Review]
+    C4[Amenity]
+end
 
-%% === Presentation Layer ===
-%% --------------------------
-class ServiceAPI {
-  +create_user()
-  +search_places()
-  +submit_review()
-}
+subgraph Persistence_Layer [Persistence Layer]
+    D1[UserDAO]
+    D2[PlaceDAO]
+    D3[ReviewDAO]
+    D4[AmenityDAO]
+end
 
-%% == Business Logic Layer ===
-%% ---------------------------
-class HBnBFacade {
-  +handle_user_creation()
-  +handle_place_search()
-  +handle_review_submission()
-}
-
-class User
-class Place
-class Review
-class Amenity
-
-
-%% === Persistance Layer ===
-%% -------------------------
-class UserDAO
-class PlaceDAO
-class ReviewDAO
-class AmenityDAO
-
-
-%% Connections
-ServiceAPI --> HBnBFacade : uses
-HBnBFacade --> User
-HBnBFacade --> Place
-HBnBFacade --> Review
-HBnBFacade --> Amenity
-User --> UserDAO
-Place --> PlaceDAO
-Review --> ReviewDAO
-Amenity --> AmenityDAO
+%% Arrows
+A --> B
+B --> C1
+B --> C2
+B --> C3
+B --> C4
+C1 --> D1
+C2 --> D2
+C3 --> D3
+C4 --> D4
