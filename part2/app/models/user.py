@@ -1,5 +1,5 @@
 """User model for our application."""
-from base import BaseModel
+from app.models.base import BaseModel
 import bcrypt
 import re
 
