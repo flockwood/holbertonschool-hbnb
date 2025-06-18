@@ -1,82 +1,77 @@
-from app.models.base import BaseModel
-import re
+"""User model for our application."""
+from base import BaseModel
 import bcrypt
-
+import re
 
 class User(BaseModel):
-    """User model representing users in the system."""
+    """Represents a user in our system."""
     
-    def __init__(self, first_name, last_name, email, password=None, is_admin=False, **kwargs):
-        """Initialize a User instance."""
-        super().__init__(**kwargs)
+    def __init__(self, first_name="", last_name="", email="", password=""):
+        """Initialize a new user."""
+        super().__init__()  # Call parent class constructor
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
-        self.is_admin = is_admin
-        self._password = None
+        self.is_admin = False  # Regular user by default
         
-        # Set password if provided
-        if password and not kwargs.get('_password'):
-            self.password = password
-        elif kwargs.get('_password'):
-            self._password = kwargs.get('_password')
-        
-        self.places = []  # List of places owned by user
-        self.reviews = []  # List of reviews written by user
-        
-        # Validate attributes
-        self.validate()
+        # Hash the password for security
+        if password:
+            self.password_hash = self._hash_password(password)
+        else:
+            self.password_hash = None
     
-    @property
-    def password(self):
-        """Password getter - returns None for security."""
-        return None
-    
-    @password.setter
-    def password(self, value):
-        """Password setter - hashes the password before storing."""
-        if value:
-            self._password = bcrypt.hashpw(value.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    def _hash_password(self, password):
+        """Hash a password for storing."""
+        # Convert password to bytes and hash it
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
     
     def verify_password(self, password):
-        """Verify if provided password matches the stored hash."""
-        if not self._password or not password:
+        """Check if provided password is correct."""
+        if not self.password_hash:
             return False
-        return bcrypt.checkpw(password.encode('utf-8'), self._password.encode('utf-8'))
+        return bcrypt.checkpw(
+            password.encode('utf-8'), 
+            self.password_hash.encode('utf-8')
+        )
     
     def validate(self):
-        """Validate user attributes."""
+        """Check if user data is valid."""
+        errors = []
+        
+        # Check first name
         if not self.first_name or len(self.first_name.strip()) == 0:
-            raise ValueError("First name is required")
-        if len(self.first_name) > 50:
-            raise ValueError("First name must not exceed 50 characters")
+            errors.append("First name is required")
         
+        # Check last name
         if not self.last_name or len(self.last_name.strip()) == 0:
-            raise ValueError("Last name is required")
-        if len(self.last_name) > 50:
-            raise ValueError("Last name must not exceed 50 characters")
+            errors.append("Last name is required")
         
-        if not self.email or len(self.email.strip()) == 0:
-            raise ValueError("Email is required")
-        if not self._validate_email(self.email):
-            raise ValueError("Invalid email format")
-        if len(self.email) > 120:
-            raise ValueError("Email must not exceed 120 characters")
+        # Check email
+        if not self.email:
+            errors.append("Email is required")
+        elif not self._is_valid_email(self.email):
+            errors.append("Invalid email format")
         
-        if not hasattr(self, '_password') or not self._password:
-            raise ValueError("Password is required")
+        # Check password
+        if not self.password_hash:
+            errors.append("Password is required")
+        
+        return errors
     
-    def _validate_email(self, email):
-        """Validate email format."""
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    def _is_valid_email(self, email):
+        """Check if email format is valid."""
+        pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
         return re.match(pattern, email) is not None
     
     def to_dict(self):
-        """Convert user to dictionary, excluding password."""
+        """Convert to dictionary, excluding password."""
         data = super().to_dict()
-        # Remove password from serialized data
-        data.pop('_password', None)
-        # Don't include related objects in serialization
-        data.pop('places', None)
-        data.pop('reviews', None)
+        data.update({
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'email': self.email,
+            'is_admin': self.is_admin
+        })
+        # Never include password in response!
         return data
