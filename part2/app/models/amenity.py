@@ -1,5 +1,5 @@
 """Amenity model for our application."""
-from base import BaseModel
+from app.models.base import BaseModel
 
 class Amenity(BaseModel):
     """Represents an amenity (like WiFi, Pool, etc.)."""
