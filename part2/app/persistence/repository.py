@@ -49,5 +49,15 @@ class InMemoryRepository(Repository):
             del self._storage[obj_id]
 
     def get_by_attribute(self, attr_name, attr_value):
-        return next((obj for obj in self._storage.values() if getattr(obj, attr_name) == attr_value), None)
-    
+        """Get object by attribute with case-insensitive string comparison"""
+        for obj in self._storage.values():
+            if hasattr(obj, attr_name):
+                obj_value = getattr(obj, attr_name)
+                # Case-insensitive comparison for strings
+                if isinstance(obj_value, str) and isinstance(attr_value, str):
+                    if obj_value.lower() == attr_value.lower():
+                        return obj
+                # Regular comparison for non-strings
+                elif obj_value == attr_value:
+                    return obj
+        return None

@@ -1,5 +1,6 @@
 from app.persistence.repository import InMemoryRepository
-from app.models.user import User 
+from app.models.user import User
+from app.models.amenity import Amenity
 
 
 class HBnBFacade:
@@ -79,3 +80,65 @@ class HBnBFacade:
             user.save()  # This should update the updated_at timestamp
         
         return user
+     # --- Amenity methods ---
+    def create_amenity(self, amenity_data):
+        """Create a new amenity"""
+        # Check if amenity with same name already exists
+        existing_amenity = self.get_amenity_by_name(amenity_data.get('name'))
+        if existing_amenity:
+            raise ValueError(f"Amenity with name '{amenity_data.get('name')}' already exists")
+        
+        # Create amenity instance
+        amenity = Amenity(name=amenity_data.get('name'))
+        
+        # Validate amenity data
+        errors = amenity.validate()
+        if errors:
+            raise ValueError(", ".join(errors))
+        
+        # Save to repository
+        self.amenity_repo.add(amenity)
+        return amenity
+
+    def get_amenity(self, amenity_id):
+        """Get amenity by ID"""
+        return self.amenity_repo.get(amenity_id)
+
+    def get_amenity_by_name(self, name):
+        """Get amenity by name"""
+        if not name:
+            return None
+        # Make case-insensitive comparison
+        return self.amenity_repo.get_by_attribute('name', name.strip())
+
+    def get_all_amenities(self):
+        """Get all amenities"""
+        return self.amenity_repo.get_all()
+
+    def update_amenity(self, amenity_id, amenity_data):
+        """Update amenity information"""
+        amenity = self.get_amenity(amenity_id)
+        if not amenity:
+            raise ValueError(f"Amenity with id {amenity_id} not found")
+        
+        # Check if new name already exists (if name is being changed)
+        new_name = amenity_data.get('name')
+        if new_name and new_name != amenity.name:
+            existing_amenity = self.get_amenity_by_name(new_name)
+            if existing_amenity:
+                raise ValueError(f"Amenity with name '{new_name}' already exists")
+        
+        # Update the amenity attributes
+        if 'name' in amenity_data:
+            amenity.name = amenity_data['name']
+        
+        # Validate after update
+        errors = amenity.validate()
+        if errors:
+            raise ValueError(", ".join(errors))
+        
+        # Update timestamp
+        if hasattr(amenity, 'save'):
+            amenity.save()
+        
+        return amenity
