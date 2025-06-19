@@ -145,3 +145,100 @@ class HBnBFacade:
             amenity.save()
         
         return amenity
+
+# --- Place methods ---
+    def create_place(self, place_data):
+        """Create a new place"""
+        # Check owner exists
+        owner = self.get_user(place_data.get('owner_id'))
+        if not owner:
+            raise ValueError(f"Owner with id {place_data.get('owner_id')} not found")
+        
+        # Check amenities exist (if provided)
+        amenities = place_data.get('amenities', [])
+        for amenity_id in amenities:
+            if not self.get_amenity(amenity_id):
+                raise ValueError(f"Amenity with id {amenity_id} not found")
+        
+        # Create place
+        place = Place(
+            title=place_data.get('title', ''),
+            description=place_data.get('description', ''),
+            price=place_data.get('price', 0),
+            latitude=place_data.get('latitude', 0),
+            longitude=place_data.get('longitude', 0),
+            owner_id=place_data.get('owner_id')
+        )
+        place.amenities = amenities
+        
+        # Validate and save
+        errors = place.validate()
+        if errors:
+            raise ValueError(", ".join(errors))
+        
+        self.place_repo.add(place)
+        return place
+
+    def get_place(self, place_id):
+        """Get place details"""
+        place = self.place_repo.get(place_id)
+        if not place:
+            return None
+        
+        # Add owner and amenity details to response
+        result = place.to_dict()
+        
+        # Add owner info
+        owner = self.get_user(place.owner_id)
+        if owner:
+            result['owner'] = owner.to_dict()
+        
+        # Add amenity info
+        result['amenities'] = []
+        for amenity_id in place.amenities:
+            amenity = self.get_amenity(amenity_id)
+            if amenity:
+                result['amenities'].append(amenity.to_dict())
+        
+        return result
+
+    def get_all_places(self):
+        """Get all places (simple list)"""
+        places = self.place_repo.get_all()
+        return [{
+            'id': place.id,
+            'title': place.title,
+            'latitude': place.latitude,
+            'longitude': place.longitude
+        } for place in places]
+
+    def update_place(self, place_id, place_data):
+        """Update place"""
+        place = self.place_repo.get(place_id)
+        if not place:
+            raise ValueError(f"Place with id {place_id} not found")
+        
+        # Update fields if provided
+        for field in ['title', 'description', 'price', 'latitude', 'longitude']:
+            if field in place_data:
+                setattr(place, field, place_data[field])
+        
+        # Update owner if provided
+        if 'owner_id' in place_data:
+            if not self.get_user(place_data['owner_id']):
+                raise ValueError(f"Owner with id {place_data['owner_id']} not found")
+            place.owner_id = place_data['owner_id']
+        
+        # Update amenities if provided
+        if 'amenities' in place_data:
+            for amenity_id in place_data['amenities']:
+                if not self.get_amenity(amenity_id):
+                    raise ValueError(f"Amenity with id {amenity_id} not found")
+            place.amenities = place_data['amenities']
+        
+        # Validate and save
+        errors = place.validate()
+        if errors:
+            raise ValueError(", ".join(errors))
+        
+        return place
