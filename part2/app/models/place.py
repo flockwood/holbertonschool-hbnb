@@ -10,12 +10,65 @@ class Place(BaseModel):
         super().__init__()
         self.title = title
         self.description = description
-        self.price = float(price)
-        self.latitude = float(latitude)
-        self.longitude = float(longitude)
+        self._price = 0
+        self._latitude = 0
+        self._longitude = 0
         self.owner_id = owner_id
         self.amenities = []  # List of amenity IDs
         self.reviews = []    # List of review IDs
+        
+        # Use setters for validation
+        self.price = price
+        self.latitude = latitude
+        self.longitude = longitude
+    
+    @property
+    def price(self):
+        """Get the price."""
+        return self._price
+    
+    @price.setter
+    def price(self, value):
+        """Set the price with validation."""
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            raise ValueError("Price must be a number")
+        if value < 0:
+            raise ValueError("Price must be non-negative")
+        self._price = value
+    
+    @property
+    def latitude(self):
+        """Get the latitude."""
+        return self._latitude
+    
+    @latitude.setter
+    def latitude(self, value):
+        """Set the latitude with validation."""
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            raise ValueError("Latitude must be a number")
+        if not -90 <= value <= 90:
+            raise ValueError("Latitude must be between -90 and 90")
+        self._latitude = value
+    
+    @property
+    def longitude(self):
+        """Get the longitude."""
+        return self._longitude
+    
+    @longitude.setter
+    def longitude(self, value):
+        """Set the longitude with validation."""
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            raise ValueError("Longitude must be a number")
+        if not -180 <= value <= 180:
+            raise ValueError("Longitude must be between -180 and 180")
+        self._longitude = value
     
     def validate(self):
         """Check if place data is valid."""
@@ -29,12 +82,6 @@ class Place(BaseModel):
         
         if self.price <= 0:
             errors.append("Price must be greater than 0")
-        
-        if not (-90 <= self.latitude <= 90):
-            errors.append("Latitude must be between -90 and 90")
-        
-        if not (-180 <= self.longitude <= 180):
-            errors.append("Longitude must be between -180 and 180")
         
         if not self.owner_id:
             errors.append("Owner ID is required")
@@ -61,7 +108,7 @@ class Place(BaseModel):
             'latitude': self.latitude,
             'longitude': self.longitude,
             'owner_id': self.owner_id,
-            'amenity_ids': self.amenities,
-            'review_ids': self.reviews
+            'amenities': self.amenities,
+            'reviews': self.reviews
         })
         return data
