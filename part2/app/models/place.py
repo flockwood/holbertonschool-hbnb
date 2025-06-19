@@ -1,5 +1,5 @@
 """Place model for our application."""
-from base import BaseModel
+from app.models.base import BaseModel
 
 class Place(BaseModel):
     """Represents a place that can be rented."""
