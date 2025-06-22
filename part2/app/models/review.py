@@ -1,5 +1,5 @@
 """Review model for our application."""
-from base import BaseModel
+from app.models.base import BaseModel
 
 class Review(BaseModel):
     """Represents a review of a place."""

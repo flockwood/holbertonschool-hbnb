@@ -2,6 +2,7 @@ from app.persistence.repository import InMemoryRepository
 from app.models.user import User
 from app.models.amenity import Amenity
 from app.models.place import Place
+from app.models.review import Review
 
 
 class HBnBFacade:
@@ -20,7 +21,7 @@ class HBnBFacade:
             raise ValueError(f"User with email {user_data.get('email')} already exists")
         
         # Create user
-        user = User(
+        user = User(  
             first_name=user_data.get('first_name'),
             last_name=user_data.get('last_name'),
             email=user_data.get('email'),
@@ -242,3 +243,68 @@ class HBnBFacade:
             raise ValueError(", ".join(errors))
         
         return place
+# --- Review methods ---
+    def create_review(self, review_data):
+        """Create a new review"""
+        # Check user and place exist
+        if not self.get_user(review_data.get('user_id')):
+            raise ValueError(f"User with id {review_data.get('user_id')} not found")
+        
+        if not self.place_repo.get(review_data.get('place_id')):
+            raise ValueError(f"Place with id {review_data.get('place_id')} not found")
+        
+        # Create and validate review
+        review = Review(
+            text=review_data.get('text', ''),
+            rating=review_data.get('rating', 0),
+            place_id=review_data.get('place_id'),
+            user_id=review_data.get('user_id')
+        )
+        
+        errors = review.validate()
+        if errors:
+            raise ValueError(", ".join(errors))
+        
+        self.review_repo.add(review)
+        return review
+
+    def get_review(self, review_id):
+        """Get review by ID"""
+        return self.review_repo.get(review_id)
+
+    def get_all_reviews(self):
+        """Get all reviews"""
+        return self.review_repo.get_all()
+
+    def get_reviews_by_place(self, place_id):
+        """Get reviews for a place"""
+        if not self.place_repo.get(place_id):
+            raise ValueError(f"Place with id {place_id} not found")
+        
+        return [r for r in self.review_repo.get_all() if r.place_id == place_id]
+
+    def update_review(self, review_id, review_data):
+        """Update review"""
+        review = self.review_repo.get(review_id)
+        if not review:
+            raise ValueError(f"Review with id {review_id} not found")
+        
+        # Update provided fields
+        if 'text' in review_data:
+            review.text = review_data['text']
+        if 'rating' in review_data:
+            review.rating = review_data['rating']
+        
+        errors = review.validate()
+        if errors:
+            raise ValueError(", ".join(errors))
+        
+        return review
+
+    def delete_review(self, review_id):
+        """Delete review"""
+        if not self.review_repo.get(review_id):
+            raise ValueError(f"Review with id {review_id} not found")
+        
+        self.review_repo.delete(review_id)
+        return True

@@ -17,4 +17,8 @@ def create_app():
     from app.api.v1.places import api as places_ns
     api.add_namespace(places_ns, path='/api/v1/places')
 
+    # reviews namespace
+    from app.api.v1.reviews import api as reviews_ns
+    api.add_namespace(reviews_ns, path='/api/v1/reviews')
+
     return app
