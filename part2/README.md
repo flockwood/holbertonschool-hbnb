@@ -240,12 +240,24 @@ The project includes comprehensive testing with **100% success rate** across all
 2. **Run validation tests** (in a new terminal)
    ```bash
    pip install requests
-   python test_validation.py
+   python tests/test_validation.py
    ```
 
 3. **Run comprehensive tests**
    ```bash
-   python final_test_report.py
+   python tests/final_test_report.py
+   ```
+
+4. **Run individual test suites**
+   ```bash
+   # Test user functionality
+   python tests/test_user.py
+   
+   # Test place functionality  
+   python tests/test_places.py
+   
+   # Test review functionality
+   python tests/test_reviews.py
    ```
 
 ### Test Coverage
@@ -349,11 +361,16 @@ part2/
 │   └── persistence/
 │       ├── __init__.py
 │       └── repository.py       # Data access layer
+├── tests/
+│   ├── test_user.py            # User endpoint tests
+│   ├── test_places.py          # Place endpoint tests
+│   ├── test_reviews.py         # Review endpoint tests
+│   ├── test_validation.py      # Input validation tests
+│   ├── comprehensive_test.py   # Full functionality tests
+│   └── final_test_report.py    # Complete test suite with reporting
 ├── requirements.txt             # Project dependencies
 ├── run.py                      # Application entry point
 ├── config.py                   # Configuration settings
-├── test_validation.py          # Validation tests
-├── final_test_report.py        # Comprehensive test suite
 └── README.md                   # This file
 ```
 
@@ -394,5 +411,3 @@ part2/
 **Fernando Lockwood**
 - Email: [flockwood@live.com]
 - GitHub: [@flockwood]
-
----
