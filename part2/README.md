@@ -19,7 +19,6 @@ A production-ready AirBnB-like REST API built with Flask and Flask-RESTX, featur
 - [API Documentation](#api-documentation)
 - [Project Structure](#project-structure)
 - [Business Logic](#business-logic)
-- [Contributing](#contributing)
 - [Author](#author)
 
 ## 🌟 Overview
