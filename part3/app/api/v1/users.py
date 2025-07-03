@@ -31,7 +31,6 @@ user_response = api.model('UserResponse', {
     'updated_at': fields.DateTime(description='Last update date')
 })
 
-
 @api.route('/')
 class UserList(Resource):
     """Handle operations on user collection"""
@@ -44,17 +43,11 @@ class UserList(Resource):
     def post(self):
         """Register a new user"""
         try:
-            # Get data from request
             user_data = api.payload
-            
-            # Create user through facade
             new_user = facade.create_user(user_data)
-            
-            # Return user data (to_dict excludes password)
             return new_user.to_dict(), 201
             
         except ValueError as e:
-            # Handle specific errors
             if "already registered" in str(e):
                 api.abort(409, str(e))
             else:
@@ -65,7 +58,6 @@ class UserList(Resource):
         """List all users"""
         users = facade.get_all_users()
         return [user.to_dict() for user in users], 200
-
 
 @api.route('/<string:user_id>')
 @api.param('user_id', 'The user identifier')

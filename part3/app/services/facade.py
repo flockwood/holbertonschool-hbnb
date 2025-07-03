@@ -15,13 +15,13 @@ class HBnBFacade:
     # --- User methods ---
     def create_user(self, user_data):
         """Create a new user"""
-        # Check if user already exists
+        # Check if email already exists
         existing_user = self.get_user_by_email(user_data.get('email'))
         if existing_user:
-            raise ValueError(f"User with email {user_data.get('email')} already exists")
+            raise ValueError("Email already registered")
         
-        # Create user
-        user = User(  
+        # Create user instance (password gets hashed in constructor)
+        user = User(
             first_name=user_data.get('first_name'),
             last_name=user_data.get('last_name'),
             email=user_data.get('email'),
@@ -32,7 +32,6 @@ class HBnBFacade:
         errors = user.validate()
         if errors:
             raise ValueError(", ".join(errors))
-        
         
         # Save to repository
         self.user_repo.add(user)
@@ -45,25 +44,25 @@ class HBnBFacade:
     def get_user_by_email(self, email):
         """Get user by email"""
         return self.user_repo.get_by_attribute('email', email)
-
+    
     def get_all_users(self):
         """Get all users"""
         return self.user_repo.get_all()
-
+    
     def update_user(self, user_id, user_data):
         """Update user information"""
         user = self.get_user(user_id)
         if not user:
             raise ValueError(f"User with id {user_id} not found")
         
-        # Check if email is being changed and if it already exists
+        # Check if email is being changed to an existing email
         new_email = user_data.get('email')
         if new_email and new_email != user.email:
             existing_user = self.get_user_by_email(new_email)
             if existing_user:
-                raise ValueError(f"User with email {new_email} already exists")
+                raise ValueError("Email already registered")
         
-        # Update user attributes
+        # Update the user attributes
         if 'first_name' in user_data:
             user.first_name = user_data['first_name']
         if 'last_name' in user_data:
@@ -71,7 +70,7 @@ class HBnBFacade:
         if 'email' in user_data:
             user.email = user_data['email']
         if 'password' in user_data:
-            user.hash_password(user_data['password'])
+            user.hash_password(user_data['password'])  # Use the new hash_password method
         
         # Validate after update
         errors = user.validate()
@@ -84,7 +83,7 @@ class HBnBFacade:
         
         return user
 
- # --- Amenity methods ---
+    # --- Amenity methods ---
     def create_amenity(self, amenity_data):
         """Create a new amenity"""
         # Check if amenity with same name already exists
@@ -146,8 +145,8 @@ class HBnBFacade:
             amenity.save()
         
         return amenity
-
-# --- Place methods ---
+    
+    # --- Place methods ---
     def create_place(self, place_data):
         """Create a new place"""
         # Check owner exists
@@ -243,7 +242,8 @@ class HBnBFacade:
             raise ValueError(", ".join(errors))
         
         return place
-# --- Review methods ---
+
+    # --- Review methods ---
     def create_review(self, review_data):
         """Create a new review"""
         # Check user and place exist

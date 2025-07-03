@@ -1,6 +1,6 @@
 """User model for our application."""
 from app.models.base import BaseModel
-import bcrypt
+from app import bcrypt  # Import bcrypt from app
 import re
 
 class User(BaseModel):
@@ -8,32 +8,27 @@ class User(BaseModel):
     
     def __init__(self, first_name="", last_name="", email="", password=""):
         """Initialize a new user."""
-        super().__init__()  # Call parent class constructor
+        super().__init__()
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
-        self.is_admin = False  # Regular user by default
+        self.is_admin = False
         
-        # Hash the password for security
+        # Hash the password if provided
         if password:
-            self.password_hash = self._hash_password(password)
+            self.hash_password(password)
         else:
-            self.password_hash = None
+            self.password = None
     
-    def _hash_password(self, password):
-        """Hash a password for storing."""
-        # Convert password to bytes and hash it
-        salt = bcrypt.gensalt()
-        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+    def hash_password(self, password):
+        """Hashes the password before storing it."""
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
     
     def verify_password(self, password):
-        """Check if provided password is correct."""
-        if not self.password_hash:
+        """Verifies if the provided password matches the hashed password."""
+        if not self.password:
             return False
-        return bcrypt.checkpw(
-            password.encode('utf-8'), 
-            self.password_hash.encode('utf-8')
-        )
+        return bcrypt.check_password_hash(self.password, password)
     
     def validate(self):
         """Check if user data is valid."""
@@ -54,7 +49,7 @@ class User(BaseModel):
             errors.append("Invalid email format")
         
         # Check password
-        if not self.password_hash:
+        if not self.password:
             errors.append("Password is required")
         
         return errors
