@@ -20,16 +20,17 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     # Production settings - more secure
-    SECRET_KEY = os.getenv('SECRET_KEY')
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
+    DEBUG = False
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)  # Shorter expiry in production
     
-    # Ensure required environment variables are set
-    if not SECRET_KEY:
-        raise ValueError("SECRET_KEY environment variable must be set in production")
-    
-    if not JWT_SECRET_KEY:
-        JWT_SECRET_KEY = SECRET_KEY
+    def __init__(self):
+        # Only check environment variables when this config is actually used
+        secret_key = os.getenv('SECRET_KEY')
+        if not secret_key:
+            raise ValueError("SECRET_KEY environment variable must be set in production")
+        
+        self.SECRET_KEY = secret_key
+        self.JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', secret_key)
 
 class TestConfig(Config):
     TESTING = True
