@@ -43,9 +43,8 @@ def create_app(config_class="config.DevelopmentConfig"):
     from app.api.v1.auth import api as auth_ns
     api.add_namespace(auth_ns, path='/api/v1/auth')
 
-    # Create admin user on startup (for development/testing)
-    @app.before_first_request
-    def create_admin_user():
+    # Create admin user on startup (compatible with newer Flask versions)
+    with app.app_context():
         try:
             from app.services import facade
             
@@ -67,7 +66,9 @@ def create_app(config_class="config.DevelopmentConfig"):
                 # Ensure existing user is admin
                 if not admin.is_admin:
                     admin.is_admin = True
-                    print("✅ Existing admin user privileges confirmed")
+                print("✅ Admin user ready")
+                print("   Email: admin@hbnb.com") 
+                print("   Password: admin123")
         except Exception as e:
             print(f"⚠️  Admin user creation failed: {e}")
             print("   You may need to create an admin user manually")
