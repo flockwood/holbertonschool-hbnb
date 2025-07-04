@@ -1,6 +1,5 @@
 """User model for our application."""
 from app.models.base import BaseModel
-from app import bcrypt  # Import bcrypt from app
 import re
 
 class User(BaseModel):
@@ -22,12 +21,16 @@ class User(BaseModel):
     
     def hash_password(self, password):
         """Hashes the password before storing it."""
+        # Import bcrypt here to avoid circular imports
+        from app import bcrypt
         self.password = bcrypt.generate_password_hash(password).decode('utf-8')
     
     def verify_password(self, password):
         """Verifies if the provided password matches the hashed password."""
         if not self.password:
             return False
+        # Import bcrypt here to avoid circular imports
+        from app import bcrypt
         return bcrypt.check_password_hash(self.password, password)
     
     def validate(self):

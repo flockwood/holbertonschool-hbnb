@@ -43,4 +43,33 @@ def create_app(config_class="config.DevelopmentConfig"):
     from app.api.v1.auth import api as auth_ns
     api.add_namespace(auth_ns, path='/api/v1/auth')
 
+    # Create admin user on startup (for development/testing)
+    @app.before_first_request
+    def create_admin_user():
+        try:
+            from app.services import facade
+            
+            # Check if admin user already exists
+            admin = facade.get_user_by_email('admin@hbnb.com')
+            if not admin:
+                admin_data = {
+                    'first_name': 'Admin',
+                    'last_name': 'User',
+                    'email': 'admin@hbnb.com',
+                    'password': 'admin123'
+                }
+                admin = facade.create_user(admin_data)
+                admin.is_admin = True
+                print("✅ Admin user created automatically on startup")
+                print("   Email: admin@hbnb.com")
+                print("   Password: admin123")
+            else:
+                # Ensure existing user is admin
+                if not admin.is_admin:
+                    admin.is_admin = True
+                    print("✅ Existing admin user privileges confirmed")
+        except Exception as e:
+            print(f"⚠️  Admin user creation failed: {e}")
+            print("   You may need to create an admin user manually")
+
     return app

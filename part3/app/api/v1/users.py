@@ -112,8 +112,7 @@ class UserResource(Resource):
             # Determine which fields are allowed based on role
             if is_admin:
                 # Admin can modify any field
-                allowed_fields = ['first_name', 'last_name', 'email', 'password', 'is_admin']
-                api.payload  # Use full payload for admin
+                user_data = api.payload
             else:
                 # Regular user can only modify first_name and last_name
                 allowed_fields = ['first_name', 'last_name']
@@ -121,8 +120,8 @@ class UserResource(Resource):
                 restricted_fields = set(api.payload.keys()) - set(allowed_fields)
                 if restricted_fields:
                     api.abort(400, 'You cannot modify email or password')
+                user_data = api.payload
             
-            user_data = api.payload
             updated_user = facade.update_user(user_id, user_data)
             return updated_user.to_dict(), 200
             
