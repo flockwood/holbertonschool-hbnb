@@ -1,4 +1,5 @@
 from flask_restx import Namespace, Resource, fields
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.services import facade
 
 # Create the namespace
@@ -12,12 +13,19 @@ user_model = api.model('User', {
     'password': fields.String(required=True, description='Password of the user')
 })
 
-# Define the input model for updating a user (password optional)
+# Define the input model for updating a user (restricted fields for regular users)
 user_update_model = api.model('UserUpdate', {
+    'first_name': fields.String(description='First name of the user'),
+    'last_name': fields.String(description='Last name of the user')
+})
+
+# Define the admin update model (includes all fields)
+admin_user_update_model = api.model('AdminUserUpdate', {
     'first_name': fields.String(description='First name of the user'),
     'last_name': fields.String(description='Last name of the user'),
     'email': fields.String(description='Email of the user'),
-    'password': fields.String(description='New password (optional)')
+    'password': fields.String(description='Password of the user'),
+    'is_admin': fields.Boolean(description='Admin status')
 })
 
 # Define the output model (what we return to client - NO PASSWORD!)
@@ -35,14 +43,23 @@ user_response = api.model('UserResponse', {
 class UserList(Resource):
     """Handle operations on user collection"""
     
+    @jwt_required()
     @api.expect(user_model, validate=True)
     @api.response(201, 'User successfully created')
     @api.response(400, 'Invalid input data')
+    @api.response(403, 'Admin privileges required')
     @api.response(409, 'Email already registered')
     @api.marshal_with(user_response, code=201)
     def post(self):
-        """Register a new user"""
+        """Create a new user (Admin only)"""
         try:
+            # Check if user is admin
+            claims = get_jwt()
+            is_admin = claims.get('is_admin', False)
+            
+            if not is_admin:
+                api.abort(403, 'Admin privileges required')
+            
             user_data = api.payload
             new_user = facade.create_user(user_data)
             return new_user.to_dict(), 201
@@ -55,7 +72,7 @@ class UserList(Resource):
     
     @api.marshal_list_with(user_response)
     def get(self):
-        """List all users"""
+        """List all users (Public access)"""
         users = facade.get_all_users()
         return [user.to_dict() for user in users], 200
 
@@ -68,21 +85,43 @@ class UserResource(Resource):
     @api.response(404, 'User not found')
     @api.marshal_with(user_response)
     def get(self, user_id):
-        """Get user details by ID"""
+        """Get user details by ID (Public access)"""
         user = facade.get_user(user_id)
         if not user:
             api.abort(404, f"User with id {user_id} not found")
         return user.to_dict(), 200
     
-    @api.expect(user_update_model, validate=True)
+    @jwt_required()
     @api.response(200, 'User successfully updated')
+    @api.response(403, 'Unauthorized action')
     @api.response(404, 'User not found')
     @api.response(400, 'Invalid input data')
-    @api.response(409, 'Email already registered')
     @api.marshal_with(user_response)
     def put(self, user_id):
-        """Update user information"""
+        """Update user information (Authentication required)"""
         try:
+            # Get current authenticated user and claims
+            current_user = get_jwt_identity()
+            claims = get_jwt()
+            is_admin = claims.get('is_admin', False)
+            
+            # Check authorization
+            if not is_admin and user_id != current_user:
+                api.abort(403, 'Unauthorized action')
+            
+            # Determine which fields are allowed based on role
+            if is_admin:
+                # Admin can modify any field
+                allowed_fields = ['first_name', 'last_name', 'email', 'password', 'is_admin']
+                api.payload  # Use full payload for admin
+            else:
+                # Regular user can only modify first_name and last_name
+                allowed_fields = ['first_name', 'last_name']
+                # Check if user is trying to modify restricted fields
+                restricted_fields = set(api.payload.keys()) - set(allowed_fields)
+                if restricted_fields:
+                    api.abort(400, 'You cannot modify email or password')
+            
             user_data = api.payload
             updated_user = facade.update_user(user_id, user_data)
             return updated_user.to_dict(), 200
