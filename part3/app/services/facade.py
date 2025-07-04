@@ -71,6 +71,8 @@ class HBnBFacade:
             user.email = user_data['email']
         if 'password' in user_data:
             user.hash_password(user_data['password'])  # Use the new hash_password method
+        if 'is_admin' in user_data:
+            user.is_admin = user_data['is_admin']  # Allow admin status changes
         
         # Validate after update
         errors = user.validate()
@@ -81,6 +83,15 @@ class HBnBFacade:
         if hasattr(user, 'save'):
             user.save()
         
+        return user
+
+    def make_user_admin(self, user_id):
+        """Make a user an admin (for testing purposes)"""
+        user = self.get_user(user_id)
+        if not user:
+            raise ValueError(f"User with id {user_id} not found")
+        
+        user.is_admin = True
         return user
 
     # --- Amenity methods ---
