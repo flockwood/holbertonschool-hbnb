@@ -2,10 +2,12 @@ from flask import Flask
 from flask_restx import Api
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
+from flask_sqlalchemy import SQLAlchemy
 
 # Create extension instances
 bcrypt = Bcrypt()
 jwt = JWTManager()
+db = SQLAlchemy()
 
 def create_app(config_class="config.DevelopmentConfig"):
     app = Flask(__name__)
@@ -16,6 +18,7 @@ def create_app(config_class="config.DevelopmentConfig"):
     # Initialize extensions
     bcrypt.init_app(app)
     jwt.init_app(app)
+    db.init_app(app)
     
     # Initialize API
     api = Api(
@@ -71,6 +74,6 @@ def create_app(config_class="config.DevelopmentConfig"):
                 print("   Password: admin123")
         except Exception as e:
             print(f"⚠️  Admin user creation failed: {e}")
-            print("   You may need to create an admin user manually")
+            print("   Note: This is expected until database models are mapped")
 
     return app
