@@ -46,8 +46,11 @@ def create_app(config_class="config.DevelopmentConfig"):
     from app.api.v1.auth import api as auth_ns
     api.add_namespace(auth_ns, path='/api/v1/auth')
 
-    # Create admin user on startup (compatible with newer Flask versions)
+    # Initialize database and create admin user
     with app.app_context():
+        # Create tables if they don't exist
+        db.create_all()
+        
         try:
             from app.services import facade
             
@@ -62,6 +65,7 @@ def create_app(config_class="config.DevelopmentConfig"):
                 }
                 admin = facade.create_user(admin_data)
                 admin.is_admin = True
+                admin.save()  # Save to database
                 print("✅ Admin user created automatically on startup")
                 print("   Email: admin@hbnb.com")
                 print("   Password: admin123")
@@ -69,11 +73,11 @@ def create_app(config_class="config.DevelopmentConfig"):
                 # Ensure existing user is admin
                 if not admin.is_admin:
                     admin.is_admin = True
+                    admin.save()
                 print("✅ Admin user ready")
                 print("   Email: admin@hbnb.com") 
                 print("   Password: admin123")
         except Exception as e:
             print(f"⚠️  Admin user creation failed: {e}")
-            print("   Note: This is expected until database models are mapped")
 
     return app
