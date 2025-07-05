@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from app import db
 
 class Repository(ABC):
     @abstractmethod
@@ -61,3 +62,50 @@ class InMemoryRepository(Repository):
                 elif obj_value == attr_value:
                     return obj
         return None
+
+
+class SQLAlchemyRepository(Repository):
+    """SQLAlchemy-based repository for database persistence"""
+    
+    def __init__(self, model):
+        self.model = model
+
+    def add(self, obj):
+        """Add an object to the database"""
+        db.session.add(obj)
+        db.session.commit()
+
+    def get(self, obj_id):
+        """Get an object by ID"""
+        return self.model.query.get(obj_id)
+
+    def get_all(self):
+        """Get all objects of this model type"""
+        return self.model.query.all()
+
+    def update(self, obj_id, data):
+        """Update an object with new data"""
+        obj = self.get(obj_id)
+        if obj:
+            for key, value in data.items():
+                setattr(obj, key, value)
+            db.session.commit()
+        return obj
+
+    def delete(self, obj_id):
+        """Delete an object by ID"""
+        obj = self.get(obj_id)
+        if obj:
+            db.session.delete(obj)
+            db.session.commit()
+
+    def get_by_attribute(self, attr_name, attr_value):
+        """Get object by attribute with case-insensitive string comparison for strings"""
+        # For string values, do case-insensitive comparison
+        if isinstance(attr_value, str):
+            return self.model.query.filter(
+                db.func.lower(getattr(self.model, attr_name)) == attr_value.lower()
+            ).first()
+        else:
+            # For non-string values, do exact comparison
+            return self.model.query.filter_by(**{attr_name: attr_value}).first()
