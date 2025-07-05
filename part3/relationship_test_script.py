@@ -54,47 +54,89 @@ def test_relationships_via_api():
             print(f"   ✅ User {i+1}: {first} {last} ({user['id'][:8]}...)")
         else:
             print(f"   ❌ Failed to create user {first} {last}")
+            print(f"      Status: {response.status_code}")
+            print(f"      Error: {response.text}")
+            
+            # Try to find existing user by email
+            all_users_response = requests.get(f"{BASE_URL}/users/")
+            if all_users_response.status_code == 200:
+                all_users = all_users_response.json()
+                existing_user = next((u for u in all_users if u['email'] == email), None)
+                if existing_user:
+                    users.append(existing_user)
+                    print(f"   ♻️  Using existing user: {first} {last} ({existing_user['id'][:8]}...)")
     
     if len(users) < 3:
         print("❌ Failed to create enough test users")
         return False
     
-    # Step 3: Create amenities
-    print("\n3️⃣  Creating Amenities")
+    # Step 3: Create/Get amenities
+    print("\n3️⃣  Creating/Getting Amenities")
     amenities = []
     
+    # First, get existing amenities
+    existing_amenities_response = requests.get(f"{BASE_URL}/amenities/")
+    existing_amenities = existing_amenities_response.json() if existing_amenities_response.status_code == 200 else []
+    
+    # Create a map of existing amenities by name
+    existing_amenity_map = {amenity['name']: amenity for amenity in existing_amenities}
+    
     for amenity_name in ["WiFi", "Pool", "Gym", "Parking", "Kitchen"]:
-        amenity_data = {"name": amenity_name}
-        response = requests.post(f"{BASE_URL}/amenities/", json=amenity_data, headers=admin_headers)
-        
-        if response.status_code == 201:
-            amenity = response.json()
+        if amenity_name in existing_amenity_map:
+            # Use existing amenity
+            amenity = existing_amenity_map[amenity_name]
             amenities.append(amenity)
-            print(f"   ✅ Amenity: {amenity_name} ({amenity['id'][:8]}...)")
+            print(f"   ♻️  Existing amenity: {amenity_name} ({amenity['id'][:8]}...)")
         else:
-            print(f"   ❌ Failed to create amenity {amenity_name}")
+            # Create new amenity
+            amenity_data = {"name": amenity_name}
+            response = requests.post(f"{BASE_URL}/amenities/", json=amenity_data, headers=admin_headers)
+            
+            if response.status_code == 201:
+                amenity = response.json()
+                amenities.append(amenity)
+                print(f"   ✅ New amenity: {amenity_name} ({amenity['id'][:8]}...)")
+            else:
+                print(f"   ❌ Failed to create amenity {amenity_name}: {response.text}")
     
     if len(amenities) < 3:
-        print("❌ Failed to create enough amenities")
+        print("❌ Not enough amenities available")
+        print(f"   Found: {len(amenities)} amenities")
         return False
+    
+    print(f"   📊 Total amenities available: {len(amenities)}")
     
     # Step 4: User login tokens
     print("\n4️⃣  User Authentication")
     user_tokens = {}
     
+    # Try different password combinations for existing users
+    password_attempts = ["test123", "password123", "demo123"]
+    
     for user in users:
-        login_data = {
-            "email": user['email'],
-            "password": "password123"
-        }
-        response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
+        token_found = False
         
-        if response.status_code == 200:
-            token = response.json()['access_token']
-            user_tokens[user['id']] = token
-            print(f"   ✅ {user['first_name']} authenticated")
-        else:
-            print(f"   ❌ Failed to authenticate {user['first_name']}")
+        for password in password_attempts:
+            login_data = {
+                "email": user['email'],
+                "password": password
+            }
+            response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
+            
+            if response.status_code == 200:
+                token = response.json()['access_token']
+                user_tokens[user['id']] = token
+                print(f"   ✅ {user['first_name']} authenticated (password: {password})")
+                token_found = True
+                break
+        
+        if not token_found:
+            print(f"   ❌ Failed to authenticate {user['first_name']} with any password")
+    
+    if len(user_tokens) < 2:
+        print("❌ Not enough authenticated users for testing")
+        print("💡 Try running: python fix_user_passwords.py")
+        return False
     
     # Step 5: Create places (testing User → Place relationship)
     print("\n5️⃣  Testing User → Place Relationship")
@@ -107,7 +149,7 @@ def test_relationships_via_api():
             "price": 200.0,
             "latitude": 25.7617,
             "longitude": -80.1918,
-            "amenities": [amenities[0]['id'], amenities[1]['id']]  # WiFi + Pool
+            "amenities": [amenities[0]['id'], amenities[1]['id']] if len(amenities) >= 2 else [amenities[0]['id']]
         },
         {
             "title": "Bob's Mountain Cabin",
@@ -115,7 +157,7 @@ def test_relationships_via_api():
             "price": 120.0,
             "latitude": 39.7392,
             "longitude": -104.9903,
-            "amenities": [amenities[0]['id'], amenities[2]['id']]  # WiFi + Gym
+            "amenities": [amenities[0]['id'], amenities[2]['id']] if len(amenities) >= 3 else [amenities[0]['id']]
         },
         {
             "title": "Carol's City Apartment",
@@ -123,7 +165,7 @@ def test_relationships_via_api():
             "price": 150.0,
             "latitude": 40.7128,
             "longitude": -74.0060,
-            "amenities": [amenities[0]['id'], amenities[3]['id'], amenities[4]['id']]  # WiFi + Parking + Kitchen
+            "amenities": [amenities[i]['id'] for i in range(min(3, len(amenities)))]  # Use up to 3 amenities
         }
     ]
     
@@ -240,16 +282,20 @@ def test_relationships_via_api():
     print("\n🔟 Testing Advanced Relationship Queries")
     
     # Test getting places by specific amenity (if this endpoint exists)
-    wifi_amenity = amenities[0]  # WiFi
-    print(f"   🔍 Testing places with {wifi_amenity['name']}...")
-    
-    for place in places:
-        response = requests.get(f"{BASE_URL}/places/{place['id']}")
-        if response.status_code == 200:
-            place_detail = response.json()
-            has_wifi = any(a['name'] == 'WiFi' for a in place_detail.get('amenities', []))
-            if has_wifi:
-                print(f"      ✅ {place_detail['title']} has WiFi")
+    if amenities:
+        first_amenity = amenities[0]
+        print(f"   🔍 Testing places with {first_amenity['name']}...")
+        
+        for place in places:
+            response = requests.get(f"{BASE_URL}/places/{place['id']}")
+            if response.status_code == 200:
+                place_detail = response.json()
+                place_amenities = place_detail.get('amenities', [])
+                has_amenity = any(a['name'] == first_amenity['name'] for a in place_amenities)
+                if has_amenity:
+                    print(f"      ✅ {place_detail['title']} has {first_amenity['name']}")
+    else:
+        print("   ⚠️  No amenities available for testing")
     
     print("\n" + "=" * 60)
     print("🎉 RELATIONSHIP TESTING COMPLETED!")
