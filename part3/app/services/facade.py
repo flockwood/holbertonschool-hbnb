@@ -1,7 +1,6 @@
-# For now, we'll use InMemoryRepository until models are mapped
+from app.persistence.user_repository import UserRepository
+# Still using InMemoryRepository for other entities until they're mapped
 from app.persistence.repository import InMemoryRepository
-# Uncomment this line when models are mapped to SQLAlchemy:
-# from app.persistence.repository import SQLAlchemyRepository
 
 from app.models.user import User
 from app.models.amenity import Amenity
@@ -11,14 +10,10 @@ from app.models.review import Review
 
 class HBnBFacade:
     def __init__(self):
-        # Using InMemoryRepository for now
-        # When models are mapped, replace with:
-        # self.user_repo = SQLAlchemyRepository(User)
-        # self.place_repo = SQLAlchemyRepository(Place)
-        # self.review_repo = SQLAlchemyRepository(Review)
-        # self.amenity_repo = SQLAlchemyRepository(Amenity)
+        # Using UserRepository for users (SQLAlchemy)
+        self.user_repo = UserRepository()
         
-        self.user_repo = InMemoryRepository()
+        # Still using InMemoryRepository for other entities
         self.place_repo = InMemoryRepository()
         self.review_repo = InMemoryRepository()
         self.amenity_repo = InMemoryRepository()
@@ -26,12 +21,12 @@ class HBnBFacade:
     # --- User methods ---
     def create_user(self, user_data):
         """Create a new user"""
-        # Check if email already exists
-        existing_user = self.get_user_by_email(user_data.get('email'))
+        # Check if email already exists using the UserRepository method
+        existing_user = self.user_repo.get_user_by_email(user_data.get('email'))
         if existing_user:
             raise ValueError("Email already registered")
         
-        # Create user instance (password gets hashed in constructor)
+        # Create user instance
         user = User(
             first_name=user_data.get('first_name'),
             last_name=user_data.get('last_name'),
@@ -39,12 +34,12 @@ class HBnBFacade:
             password=user_data.get('password')
         )
         
-        # Validate user data
+        # Validate user data (legacy validation for compatibility)
         errors = user.validate()
         if errors:
             raise ValueError(", ".join(errors))
         
-        # Save to repository
+        # Save to repository (will commit to database)
         self.user_repo.add(user)
         return user
 
@@ -54,7 +49,7 @@ class HBnBFacade:
 
     def get_user_by_email(self, email):
         """Get user by email"""
-        return self.user_repo.get_by_attribute('email', email)
+        return self.user_repo.get_user_by_email(email)
     
     def get_all_users(self):
         """Get all users"""
@@ -81,18 +76,17 @@ class HBnBFacade:
         if 'email' in user_data:
             user.email = user_data['email']
         if 'password' in user_data:
-            user.hash_password(user_data['password'])  # Use the new hash_password method
+            user.hash_password(user_data['password'])
         if 'is_admin' in user_data:
-            user.is_admin = user_data['is_admin']  # Allow admin status changes
+            user.is_admin = user_data['is_admin']
         
         # Validate after update
         errors = user.validate()
         if errors:
             raise ValueError(", ".join(errors))
         
-        # Update timestamp
-        if hasattr(user, 'save'):
-            user.save()
+        # Save changes to database
+        user.save()
         
         return user
 
@@ -103,9 +97,10 @@ class HBnBFacade:
             raise ValueError(f"User with id {user_id} not found")
         
         user.is_admin = True
+        user.save()
         return user
 
-    # --- Amenity methods ---
+    # --- Amenity methods (still using InMemoryRepository) ---
     def create_amenity(self, amenity_data):
         """Create a new amenity"""
         # Check if amenity with same name already exists
@@ -168,10 +163,10 @@ class HBnBFacade:
         
         return amenity
     
-    # --- Place methods ---
+    # --- Place methods (still using InMemoryRepository) ---
     def create_place(self, place_data):
         """Create a new place"""
-        # Check owner exists
+        # Check owner exists (now using UserRepository)
         owner = self.get_user(place_data.get('owner_id'))
         if not owner:
             raise ValueError(f"Owner with id {place_data.get('owner_id')} not found")
@@ -210,7 +205,7 @@ class HBnBFacade:
         # Add owner and amenity details to response
         result = place.to_dict()
         
-        # Add owner info
+        # Add owner info (now from database)
         owner = self.get_user(place.owner_id)
         if owner:
             result['owner'] = owner.to_dict()
@@ -245,7 +240,7 @@ class HBnBFacade:
             if field in place_data:
                 setattr(place, field, place_data[field])
         
-        # Update owner if provided
+        # Update owner if provided (now using UserRepository)
         if 'owner_id' in place_data:
             if not self.get_user(place_data['owner_id']):
                 raise ValueError(f"Owner with id {place_data['owner_id']} not found")
@@ -265,10 +260,10 @@ class HBnBFacade:
         
         return place
 
-    # --- Review methods ---
+    # --- Review methods (still using InMemoryRepository) ---
     def create_review(self, review_data):
         """Create a new review"""
-        # Check user and place exist
+        # Check user exists (now using UserRepository)
         if not self.get_user(review_data.get('user_id')):
             raise ValueError(f"User with id {review_data.get('user_id')} not found")
         
