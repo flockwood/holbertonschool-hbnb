@@ -158,19 +158,13 @@ class HBnBFacade:
         
         return amenity
     
-    # --- Place methods (now using SQLAlchemy) ---
+    # --- Place methods (now using SQLAlchemy relationships) ---
     def create_place(self, place_data):
         """Create a new place"""
         # Check owner exists (using UserRepository)
         owner = self.get_user(place_data.get('owner_id'))
         if not owner:
             raise ValueError(f"Owner with id {place_data.get('owner_id')} not found")
-        
-        # Check amenities exist (if provided)
-        amenities = place_data.get('amenities', [])
-        for amenity_id in amenities:
-            if not self.get_amenity(amenity_id):
-                raise ValueError(f"Amenity with id {amenity_id} not found")
         
         # Create place
         place = Place(
@@ -181,7 +175,14 @@ class HBnBFacade:
             longitude=place_data.get('longitude', 0),
             owner_id=place_data.get('owner_id')
         )
-        place.amenities = amenities  # Store as list for now
+        
+        # Handle amenities (many-to-many relationship)
+        amenity_ids = place_data.get('amenities', [])
+        for amenity_id in amenity_ids:
+            amenity = self.get_amenity(amenity_id)
+            if not amenity:
+                raise ValueError(f"Amenity with id {amenity_id} not found")
+            place.add_amenity(amenity)
         
         # Validate and save
         errors = place.validate()
@@ -193,25 +194,20 @@ class HBnBFacade:
         return place
 
     def get_place(self, place_id):
-        """Get place details"""
+        """Get place details with relationships"""
         place = self.place_repo.get(place_id)
         if not place:
             return None
         
-        # Add owner and amenity details to response
+        # Create detailed response using relationships
         result = place.to_dict()
         
-        # Add owner info (from database)
-        owner = self.get_user(place.owner_id)
-        if owner:
-            result['owner'] = owner.to_dict()
+        # Add owner info using relationship
+        if place.owner:
+            result['owner'] = place.owner.to_dict()
         
-        # Add amenity info
-        result['amenities'] = []
-        for amenity_id in getattr(place, 'amenities', []):
-            amenity = self.get_amenity(amenity_id)
-            if amenity:
-                result['amenities'].append(amenity.to_dict())
+        # Add amenities info using relationship
+        result['amenities'] = [amenity.to_dict() for amenity in place.amenities]
         
         return result
 
@@ -226,28 +222,33 @@ class HBnBFacade:
         } for place in places]
 
     def update_place(self, place_id, place_data):
-        """Update place"""
+        """Update place using relationships"""
         place = self.place_repo.get(place_id)
         if not place:
             raise ValueError(f"Place with id {place_id} not found")
         
-        # Update fields if provided
+        # Update basic fields
         for field in ['title', 'description', 'price', 'latitude', 'longitude']:
             if field in place_data:
                 setattr(place, field, place_data[field])
         
-        # Update owner if provided (using UserRepository)
+        # Update owner if provided
         if 'owner_id' in place_data:
-            if not self.get_user(place_data['owner_id']):
+            new_owner = self.get_user(place_data['owner_id'])
+            if not new_owner:
                 raise ValueError(f"Owner with id {place_data['owner_id']} not found")
             place.owner_id = place_data['owner_id']
         
-        # Update amenities if provided
+        # Update amenities if provided (many-to-many)
         if 'amenities' in place_data:
+            # Clear existing amenities
+            place.amenities.clear()
+            # Add new amenities
             for amenity_id in place_data['amenities']:
-                if not self.get_amenity(amenity_id):
+                amenity = self.get_amenity(amenity_id)
+                if not amenity:
                     raise ValueError(f"Amenity with id {amenity_id} not found")
-            place.amenities = place_data['amenities']
+                place.add_amenity(amenity)
         
         # Validate and save
         errors = place.validate()
@@ -259,14 +260,16 @@ class HBnBFacade:
         
         return place
 
-    # --- Review methods (now using SQLAlchemy) ---
+    # --- Review methods (now using SQLAlchemy relationships) ---
     def create_review(self, review_data):
-        """Create a new review"""
+        """Create a new review using relationships"""
         # Check user and place exist
-        if not self.get_user(review_data.get('user_id')):
+        user = self.get_user(review_data.get('user_id'))
+        if not user:
             raise ValueError(f"User with id {review_data.get('user_id')} not found")
         
-        if not self.place_repo.get(review_data.get('place_id')):
+        place = self.place_repo.get(review_data.get('place_id'))
+        if not place:
             raise ValueError(f"Place with id {review_data.get('place_id')} not found")
         
         # Create and validate review
@@ -294,11 +297,13 @@ class HBnBFacade:
         return self.review_repo.get_all()
 
     def get_reviews_by_place(self, place_id):
-        """Get reviews for a place"""
-        if not self.place_repo.get(place_id):
+        """Get reviews for a place using relationships"""
+        place = self.place_repo.get(place_id)
+        if not place:
             raise ValueError(f"Place with id {place_id} not found")
         
-        return self.review_repo.get_reviews_by_place(place_id)
+        # Use relationship to get reviews
+        return place.reviews
 
     def update_review(self, review_id, review_data):
         """Update review"""
@@ -330,3 +335,36 @@ class HBnBFacade:
         # Delete from repository (will commit to database)
         self.review_repo.delete(review_id)
         return True
+
+    # --- Additional relationship methods ---
+    def get_user_places(self, user_id):
+        """Get all places owned by a user using relationships"""
+        user = self.get_user(user_id)
+        if not user:
+            raise ValueError(f"User with id {user_id} not found")
+        
+        return user.places
+
+    def get_user_reviews(self, user_id):
+        """Get all reviews written by a user using relationships"""
+        user = self.get_user(user_id)
+        if not user:
+            raise ValueError(f"User with id {user_id} not found")
+        
+        return user.reviews
+
+    def get_place_reviews(self, place_id):
+        """Get all reviews for a place using relationships"""
+        place = self.place_repo.get(place_id)
+        if not place:
+            raise ValueError(f"Place with id {place_id} not found")
+        
+        return place.reviews
+
+    def get_amenity_places(self, amenity_id):
+        """Get all places that have a specific amenity"""
+        amenity = self.get_amenity(amenity_id)
+        if not amenity:
+            raise ValueError(f"Amenity with id {amenity_id} not found")
+        
+        return amenity.places
