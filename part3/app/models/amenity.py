@@ -1,4 +1,4 @@
-"""Amenity model for our application."""
+"""Amenity model for our application with SQLAlchemy relationships."""
 from app.models.base import BaseModel
 from app import db
 from sqlalchemy.orm import validates
@@ -9,6 +9,9 @@ class Amenity(BaseModel):
     __tablename__ = 'amenities'
     
     name = db.Column(db.String(50), nullable=False, unique=True)
+    
+    # Relationship with Place is defined in Place model using backref
+    # places = backref from Place model through place_amenity association table
     
     def __init__(self, name="", **kwargs):
         """Initialize a new amenity."""
