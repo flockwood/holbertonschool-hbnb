@@ -1,4 +1,4 @@
-"""User model for our application."""
+"""User model for our application with SQLAlchemy relationships."""
 from app.models.base import BaseModel
 from app import db
 import re
@@ -14,6 +14,10 @@ class User(BaseModel):
     email = db.Column(db.String(120), nullable=False, unique=True)
     password = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    
+    # Relationships
+    places = db.relationship('Place', backref='owner', lazy=True, cascade='all, delete-orphan')
+    reviews = db.relationship('Review', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def __init__(self, first_name="", last_name="", email="", password="", **kwargs):
         """Initialize a new user."""
