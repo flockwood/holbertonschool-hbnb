@@ -1,4 +1,4 @@
-"""Review model for our application."""
+"""Review model for our application with SQLAlchemy relationships."""
 from app.models.base import BaseModel
 from app import db
 from sqlalchemy.orm import validates
@@ -10,8 +10,14 @@ class Review(BaseModel):
     
     text = db.Column(db.Text, nullable=False)
     rating = db.Column(db.Integer, nullable=False)
-    user_id = db.Column(db.String(36), nullable=False)  # Will be foreign key later
-    place_id = db.Column(db.String(36), nullable=False)  # Will be foreign key later
+    
+    # Foreign keys
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    place_id = db.Column(db.String(36), db.ForeignKey('places.id'), nullable=False)
+    
+    # Relationships are defined in the referenced models with backref
+    # user = backref from User model
+    # place = backref from Place model
     
     def __init__(self, text="", rating=0, place_id="", user_id="", **kwargs):
         """Initialize a new review."""
