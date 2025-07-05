@@ -1,7 +1,13 @@
-"""Place model for our application."""
+"""Place model for our application with SQLAlchemy relationships."""
 from app.models.base import BaseModel
 from app import db
 from sqlalchemy.orm import validates
+
+# Association table for many-to-many relationship between Place and Amenity
+place_amenity = db.Table('place_amenity',
+    db.Column('place_id', db.String(36), db.ForeignKey('places.id'), primary_key=True),
+    db.Column('amenity_id', db.String(36), db.ForeignKey('amenities.id'), primary_key=True)
+)
 
 class Place(BaseModel):
     """Represents a place that can be rented."""
@@ -13,10 +19,14 @@ class Place(BaseModel):
     price = db.Column(db.Float, nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
-    owner_id = db.Column(db.String(36), nullable=False)  # Will be foreign key later
     
-    # Note: amenities and reviews will be relationships in future tasks
-    # For now, we'll store them as JSON or handle them in business logic
+    # Foreign key to User
+    owner_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    reviews = db.relationship('Review', backref='place', lazy=True, cascade='all, delete-orphan')
+    amenities = db.relationship('Amenity', secondary=place_amenity, lazy='subquery',
+                               backref=db.backref('places', lazy=True))
     
     def __init__(self, title="", description="", price=0, 
                  latitude=0.0, longitude=0.0, owner_id="", **kwargs):
@@ -28,8 +38,6 @@ class Place(BaseModel):
         self.latitude = latitude
         self.longitude = longitude
         self.owner_id = owner_id
-        self.amenities = []  # List of amenity IDs (temporary)
-        self.reviews = []    # List of review IDs (temporary)
     
     @validates('price')
     def validate_price(self, key, price):
@@ -89,17 +97,15 @@ class Place(BaseModel):
         
         return errors
     
-    def add_amenity(self, amenity_id):
+    def add_amenity(self, amenity):
         """Add an amenity to this place."""
-        if not hasattr(self, 'amenities'):
-            self.amenities = []
-        if amenity_id not in self.amenities:
-            self.amenities.append(amenity_id)
+        if amenity not in self.amenities:
+            self.amenities.append(amenity)
     
-    def remove_amenity(self, amenity_id):
+    def remove_amenity(self, amenity):
         """Remove an amenity from this place."""
-        if hasattr(self, 'amenities') and amenity_id in self.amenities:
-            self.amenities.remove(amenity_id)
+        if amenity in self.amenities:
+            self.amenities.remove(amenity)
     
     def to_dict(self):
         """Convert to dictionary."""
@@ -110,8 +116,6 @@ class Place(BaseModel):
             'price': self.price,
             'latitude': self.latitude,
             'longitude': self.longitude,
-            'owner_id': self.owner_id,
-            'amenities': getattr(self, 'amenities', []),
-            'reviews': getattr(self, 'reviews', [])
+            'owner_id': self.owner_id
         })
         return data
