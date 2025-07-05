@@ -1,6 +1,160 @@
-from app.persistence.user_repository import UserRepository
-# Still using InMemoryRepository for other entities until they're mapped
-from app.persistence.repository import InMemoryRepository
+# --- Place methods (now using SQLAlchemy) ---
+    def create_place(self, place_data):
+        """Create a new place"""
+        # Check owner exists (using UserRepository)
+        owner = self.get_user(place_data.get('owner_id'))
+        if not owner:
+            raise ValueError(f"Owner with id {place_data.get('owner_id')} not found")
+        
+        # Check amenities exist (if provided)
+        amenities = place_data.get('amenities', [])
+        for amenity_id in amenities:
+            if not self.get_amenity(amenity_id):
+                raise ValueError(f"Amenity with id {amenity_id} not found")
+        
+        # Create place
+        place = Place(
+            title=place_data.get('title', ''),
+            description=place_data.get('description', ''),
+            price=place_data.get('price', 0),
+            latitude=place_data.get('latitude', 0),
+            longitude=place_data.get('longitude', 0),
+            owner_id=place_data.get('owner_id')
+        )
+        place.amenities = amenities  # Store as list for now
+        
+        # Validate and save
+        errors = place.validate()
+        if errors:
+            raise ValueError(", ".join(errors))
+        
+        # Save to repository (will commit to database)
+        self.place_repo.add(place)
+        return place
+
+    def get_place(self, place_id):
+        """Get place details"""
+        place = self.place_repo.get(place_id)
+        if not place:
+            return None
+        
+        # Add owner and amenity details to response
+        result = place.to_dict()
+        
+        # Add owner info (from database)
+        owner = self.get_user(place.owner_id)
+        if owner:
+            result['owner'] = owner.to_dict()
+        
+        # Add amenity info
+        result['amenities'] = []
+        for amenity_id in getattr(place, 'amenities', []):
+            amenity = self.get_amenity(amenity_id)
+            if amenity:
+                result['amenities'].append(amenity.to_dict())
+        
+        return result
+
+    def get_all_places(self):
+        """Get all places (simple list)"""
+        places = self.place_repo.get_all()
+        return [{
+            'id': place.id,
+            'title': place.title,
+            'latitude': place.latitude,
+            'longitude': place.longitude
+        } for place in places]
+
+    def update_place(self, place_id, place_data):
+        """Update place"""
+        place = self.place_repo.get(place_id)
+        if not place:
+            raise ValueError(f"Place with id {place_id} not found")
+        
+        # Update fields if provided
+        for field in ['title', 'description', 'price', 'latitude', 'longitude']:
+            if field in place_data:
+                setattr(place, field, place_data[field])
+        
+        # Update owner if provided (using UserRepository)
+        if 'owner_id' in place_data:
+            if not self.get_user(place_data['owner_id']):
+                raise ValueError(f"Owner with id {place_data['owner_id']} not found")
+            place.owner_id = place_data['owner_id']
+        
+        # Update amenities if provided
+        if 'amenities' in place_data:
+            for amenity_id in place_data['amenities']:
+                if not self.get_amenity(amenity_id):
+                    raise ValueError(f"Amenity with id {amenity_id} not found")
+            place.amenities = place_data['amenities']
+        
+        # Validate and save
+        errors = place.validate()
+        if errors:
+            raise ValueError(", ".join(errors))
+        
+        # Save changes to database
+        place.save()
+        
+        return place
+
+    # --- Review methods (now using SQLAlchemy) ---
+    def create_review(self, review_data):
+        """Create a new review"""
+        # Check user and place exist
+        if not self.get_user(review_data.get('user_id')):
+            raise ValueError(f"User with id {review_data.get('user_id')} not found")
+        
+        if not self.place_repo.get(review_data.get('place_id')):
+            raise ValueError(f"Place with id {review_data.get('place_id')} not found")
+        
+        # Create and validate review
+        review = Review(
+            text=review_data.get('text', ''),
+            rating=review_data.get('rating', 0),
+            place_id=review_data.get('place_id'),
+            user_id=review_data.get('user_id')
+        )
+        
+        errors = review.validate()
+        if errors:
+            raise ValueError(", ".join(errors))
+        
+        # Save to repository (will commit to database)
+        self.review_repo.add(review)
+        return review
+
+    def get_review(self, review_id):
+        """Get review by ID"""
+        return self.review_repo.get(review_id)
+
+    def get_all_reviews(self):
+        """Get all reviews"""
+        return self.review_repo.get_all()
+
+    def get_reviews_by_place(self, place_id):
+        """Get reviews for a place"""
+        if not self.place_repo.get(place_id):
+            raise ValueError(f"Place with id {place_id} not found")
+        
+        return self.review_repo.get_reviews_by_place(place_id)
+
+    def update_review(self, review_id, review_data):
+        """Update review"""
+        review = self.review_repo.get(review_id)
+        if not review:
+            raise ValueError(f"Review with id {review_id} not found")
+        
+        # Update provided fields
+        if 'text' in review_data:
+            review.text = review_data['text']
+        if 'rating' in review_data:
+            review.rating = review_data['rating']
+        from app.persistence.user_repository import UserRepository
+from app.persistence.place_repository import PlaceRepository
+from app.persistence.review_repository import ReviewRepository
+from app.persistence.amenity_repository import AmenityRepository
 
 from app.models.user import User
 from app.models.amenity import Amenity
@@ -10,13 +164,11 @@ from app.models.review import Review
 
 class HBnBFacade:
     def __init__(self):
-        # Using UserRepository for users (SQLAlchemy)
+        # Using SQLAlchemy repositories for all entities
         self.user_repo = UserRepository()
-        
-        # Still using InMemoryRepository for other entities
-        self.place_repo = InMemoryRepository()
-        self.review_repo = InMemoryRepository()
-        self.amenity_repo = InMemoryRepository()
+        self.place_repo = PlaceRepository()
+        self.review_repo = ReviewRepository()
+        self.amenity_repo = AmenityRepository()
 
     # --- User methods ---
     def create_user(self, user_data):
@@ -100,11 +252,11 @@ class HBnBFacade:
         user.save()
         return user
 
-    # --- Amenity methods (still using InMemoryRepository) ---
+    # --- Amenity methods (now using SQLAlchemy) ---
     def create_amenity(self, amenity_data):
         """Create a new amenity"""
         # Check if amenity with same name already exists
-        existing_amenity = self.get_amenity_by_name(amenity_data.get('name'))
+        existing_amenity = self.amenity_repo.get_amenity_by_name(amenity_data.get('name'))
         if existing_amenity:
             raise ValueError(f"Amenity with name '{amenity_data.get('name')}' already exists")
         
@@ -116,7 +268,7 @@ class HBnBFacade:
         if errors:
             raise ValueError(", ".join(errors))
         
-        # Save to repository
+        # Save to repository (will commit to database)
         self.amenity_repo.add(amenity)
         return amenity
 
@@ -126,10 +278,7 @@ class HBnBFacade:
 
     def get_amenity_by_name(self, name):
         """Get amenity by name"""
-        if not name:
-            return None
-        # Make case-insensitive comparison
-        return self.amenity_repo.get_by_attribute('name', name.strip())
+        return self.amenity_repo.get_amenity_by_name(name)
 
     def get_all_amenities(self):
         """Get all amenities"""
@@ -157,149 +306,17 @@ class HBnBFacade:
         if errors:
             raise ValueError(", ".join(errors))
         
-        # Update timestamp
-        if hasattr(amenity, 'save'):
-            amenity.save()
+        # Save changes to database
+        amenity.save()
         
         return amenity
-    
-    # --- Place methods (still using InMemoryRepository) ---
-    def create_place(self, place_data):
-        """Create a new place"""
-        # Check owner exists (now using UserRepository)
-        owner = self.get_user(place_data.get('owner_id'))
-        if not owner:
-            raise ValueError(f"Owner with id {place_data.get('owner_id')} not found")
-        
-        # Check amenities exist (if provided)
-        amenities = place_data.get('amenities', [])
-        for amenity_id in amenities:
-            if not self.get_amenity(amenity_id):
-                raise ValueError(f"Amenity with id {amenity_id} not found")
-        
-        # Create place
-        place = Place(
-            title=place_data.get('title', ''),
-            description=place_data.get('description', ''),
-            price=place_data.get('price', 0),
-            latitude=place_data.get('latitude', 0),
-            longitude=place_data.get('longitude', 0),
-            owner_id=place_data.get('owner_id')
-        )
-        place.amenities = amenities
-        
-        # Validate and save
-        errors = place.validate()
-        if errors:
-            raise ValueError(", ".join(errors))
-        
-        self.place_repo.add(place)
-        return place
 
-    def get_place(self, place_id):
-        """Get place details"""
-        place = self.place_repo.get(place_id)
-        if not place:
-            return None
+    def update_review(self, review_id, review_data):
+        """Update review"""
+        review = self.review_repo.get(review_id)
+        if not review:
+            raise ValueError(f"Review with id {review_id} not found")
         
-        # Add owner and amenity details to response
-        result = place.to_dict()
-        
-        # Add owner info (now from database)
-        owner = self.get_user(place.owner_id)
-        if owner:
-            result['owner'] = owner.to_dict()
-        
-        # Add amenity info
-        result['amenities'] = []
-        for amenity_id in place.amenities:
-            amenity = self.get_amenity(amenity_id)
-            if amenity:
-                result['amenities'].append(amenity.to_dict())
-        
-        return result
-
-    def get_all_places(self):
-        """Get all places (simple list)"""
-        places = self.place_repo.get_all()
-        return [{
-            'id': place.id,
-            'title': place.title,
-            'latitude': place.latitude,
-            'longitude': place.longitude
-        } for place in places]
-
-    def update_place(self, place_id, place_data):
-        """Update place"""
-        place = self.place_repo.get(place_id)
-        if not place:
-            raise ValueError(f"Place with id {place_id} not found")
-        
-        # Update fields if provided
-        for field in ['title', 'description', 'price', 'latitude', 'longitude']:
-            if field in place_data:
-                setattr(place, field, place_data[field])
-        
-        # Update owner if provided (now using UserRepository)
-        if 'owner_id' in place_data:
-            if not self.get_user(place_data['owner_id']):
-                raise ValueError(f"Owner with id {place_data['owner_id']} not found")
-            place.owner_id = place_data['owner_id']
-        
-        # Update amenities if provided
-        if 'amenities' in place_data:
-            for amenity_id in place_data['amenities']:
-                if not self.get_amenity(amenity_id):
-                    raise ValueError(f"Amenity with id {amenity_id} not found")
-            place.amenities = place_data['amenities']
-        
-        # Validate and save
-        errors = place.validate()
-        if errors:
-            raise ValueError(", ".join(errors))
-        
-        return place
-
-    # --- Review methods (still using InMemoryRepository) ---
-    def create_review(self, review_data):
-        """Create a new review"""
-        # Check user exists (now using UserRepository)
-        if not self.get_user(review_data.get('user_id')):
-            raise ValueError(f"User with id {review_data.get('user_id')} not found")
-        
-        if not self.place_repo.get(review_data.get('place_id')):
-            raise ValueError(f"Place with id {review_data.get('place_id')} not found")
-        
-        # Create and validate review
-        review = Review(
-            text=review_data.get('text', ''),
-            rating=review_data.get('rating', 0),
-            place_id=review_data.get('place_id'),
-            user_id=review_data.get('user_id')
-        )
-        
-        errors = review.validate()
-        if errors:
-            raise ValueError(", ".join(errors))
-        
-        self.review_repo.add(review)
-        return review
-
-    def get_review(self, review_id):
-        """Get review by ID"""
-        return self.review_repo.get(review_id)
-
-    def get_all_reviews(self):
-        """Get all reviews"""
-        return self.review_repo.get_all()
-
-    def get_reviews_by_place(self, place_id):
-        """Get reviews for a place"""
-        if not self.place_repo.get(place_id):
-            raise ValueError(f"Place with id {place_id} not found")
-        
-        return [r for r in self.review_repo.get_all() if r.place_id == place_id]
-
     def update_review(self, review_id, review_data):
         """Update review"""
         review = self.review_repo.get(review_id)
@@ -316,12 +333,17 @@ class HBnBFacade:
         if errors:
             raise ValueError(", ".join(errors))
         
+        # Save changes to database
+        review.save()
+        
         return review
 
     def delete_review(self, review_id):
         """Delete review"""
-        if not self.review_repo.get(review_id):
+        review = self.review_repo.get(review_id)
+        if not review:
             raise ValueError(f"Review with id {review_id} not found")
         
+        # Delete from repository (will commit to database)
         self.review_repo.delete(review_id)
         return True

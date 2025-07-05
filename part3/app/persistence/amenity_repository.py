@@ -1,6 +1,7 @@
 """Amenity-specific repository for database operations."""
 from app.models.amenity import Amenity
 from app.persistence.repository import SQLAlchemyRepository
+from app import db
 
 class AmenityRepository(SQLAlchemyRepository):
     """Repository for Amenity entity with specific amenity operations."""
