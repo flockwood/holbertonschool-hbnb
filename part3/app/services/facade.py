@@ -1,4 +1,8 @@
+# For now, we'll use InMemoryRepository until models are mapped
 from app.persistence.repository import InMemoryRepository
+# Uncomment this line when models are mapped to SQLAlchemy:
+# from app.persistence.repository import SQLAlchemyRepository
+
 from app.models.user import User
 from app.models.amenity import Amenity
 from app.models.place import Place
@@ -7,6 +11,13 @@ from app.models.review import Review
 
 class HBnBFacade:
     def __init__(self):
+        # Using InMemoryRepository for now
+        # When models are mapped, replace with:
+        # self.user_repo = SQLAlchemyRepository(User)
+        # self.place_repo = SQLAlchemyRepository(Place)
+        # self.review_repo = SQLAlchemyRepository(Review)
+        # self.amenity_repo = SQLAlchemyRepository(Amenity)
+        
         self.user_repo = InMemoryRepository()
         self.place_repo = InMemoryRepository()
         self.review_repo = InMemoryRepository()
