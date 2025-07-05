@@ -10,6 +10,10 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
+    
+    # SQLAlchemy configuration
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///development.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Simple config dictionary
 config = {
