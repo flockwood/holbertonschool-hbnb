@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Place Details - HBnB</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="icon.png" type="image/png">
+</head>
+<body>
+    <header>
+        <img src="logo.png" alt="HBnB Logo" class="logo">
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="login.html" class="login-button">Login</a>
+        </nav>
+    </header>
+    
+    <main>
+        <section id="place-details" class="place-details">
+            <div class="place-info">
+                <h1>Cozy Beach House</h1>
+                <p class="host-info">Hosted by John Doe</p>
+                <p class="price">$150 per night</p>
+                <div class="description">
+                    <h2>Description</h2>
+                    <p>Beautiful beachfront property with stunning ocean views. Perfect for a relaxing getaway with family or friends. The house features modern amenities and direct beach access.</p>
+                </div>
+                <div class="amenities">
+                    <h2>Amenities</h2>
+                    <ul>
+                        <li>WiFi</li>
+                        <li>Air Conditioning</li>
+                        <li>Swimming Pool</li>
+                        <li>Kitchen</li>
+                        <li>Free Parking</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <section id="reviews">
+            <h2>Reviews</h2>
+            <div class="reviews-container">
+                <article class="review-card">
+                    <div class="review-header">
+                        <strong>Alice Smith</strong>
+                        <span class="rating">★★★★★</span>
+                    </div>
+                    <p>Amazing place! The beach view was incredible and the house was very clean and comfortable.</p>
+                </article>
+                
+                <article class="review-card">
+                    <div class="review-header">
+                        <strong>Bob Johnson</strong>
+                        <span class="rating">★★★★☆</span>
+                    </div>
+                    <p>Great location and beautiful house. Only minor issue was the WiFi speed, but overall excellent stay.</p>
+                </article>
+            </div>
+        </section>
+        
+        <section id="add-review" class="add-review">
+            <h2>Add a Review</h2>
+            <form id="review-form" class="form">
+                <label for="review-text">Your Review:</label>
+                <textarea id="review-text" name="review-text" rows="4" required></textarea>
+                
+                <label for="rating">Rating:</label>
+                <select id="rating" name="rating" required>
+                    <option value="">Select a rating</option>
+                    <option value="5">5 - Excellent</option>
+                    <option value="4">4 - Very Good</option>
+                    <option value="3">3 - Good</option>
+                    <option value="2">2 - Fair</option>
+                    <option value="1">1 - Poor</option>
+                </select>
+                
+                <button type="submit">Submit Review</button>
+            </form>
+            <p class="login-notice">
+                <a href="add_review.html">Or use the full review form</a> | 
+                <a href="login.html">Login to add a review</a>
+            </p>
+        </section>
+    </main>
+    
+    <footer>
+        <p>All rights reserved</p>
+    </footer>
+    
+    <script src="scripts.js"></script>
+</body>
+</html>
