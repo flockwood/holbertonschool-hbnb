@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HBnB - List of Places</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="icon.png" type="image/png">
+</head>
+<body>
+    <header>
+        <img src="logo.png" alt="HBnB Logo" class="logo">
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="login.html" class="login-button">Login</a>
+        </nav>
+    </header>
+    
+    <main>
+        <h1>Find Your Perfect Stay</h1>
+        
+        <section id="filter">
+            <label for="price-filter">Max Price per Night:</label>
+            <select id="price-filter">
+                <option value="">All Prices</option>
+                <option value="50">Up to $50</option>
+                <option value="100">Up to $100</option>
+                <option value="200">Up to $200</option>
+                <option value="500">Up to $500</option>
+            </select>
+        </section>
+        
+        <section id="places-list">
+            <!-- Sample place cards - these would be populated dynamically -->
+            <article class="place-card">
+                <h2>Cozy Beach House</h2>
+                <p class="price">$150 per night</p>
+                <button class="details-button" onclick="window.location.href='place.html'">View Details</button>
+            </article>
+            
+            <article class="place-card">
+                <h2>Mountain Retreat</h2>
+                <p class="price">$120 per night</p>
+                <button class="details-button" onclick="window.location.href='place.html'">View Details</button>
+            </article>
+            
+            <article class="place-card">
+                <h2>City Apartment</h2>
+                <p class="price">$80 per night</p>
+                <button class="details-button" onclick="window.location.href='place.html'">View Details</button>
+            </article>
+        </section>
+    </main>
+    
+    <footer>
+        <p>All rights reserved</p>
+    </footer>
+    
+    <script src="scripts.js"></script>
+</body>
+</html>
