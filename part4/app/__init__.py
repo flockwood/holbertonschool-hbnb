@@ -1,9 +1,10 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_restx import Api
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+import os
 
 # Create extension instances
 bcrypt = Bcrypt()
@@ -20,14 +21,27 @@ def create_app(config_class="config.DevelopmentConfig"):
     bcrypt.init_app(app)
     jwt.init_app(app)
     db.init_app(app)
+    CORS(app)  # Enable CORS for frontend-backend communication
     
-    # Initialize API
+    # Serve frontend files
+    @app.route('/')
+    def index():
+        return send_from_directory('../frontend', 'index.html')
+    
+    @app.route('/<path:filename>')
+    def serve_static(filename):
+        # Don't serve API routes as static files
+        if filename.startswith('api/'):
+            return "Not Found", 404
+        return send_from_directory('../frontend', filename)
+    
+    # Initialize API with updated doc path to avoid conflicts
     api = Api(
         app, 
         version='1.0', 
         title='HBnB API', 
         description='HBnB Application API', 
-        doc='/api/v1/'
+        doc='/api/v1/doc/'  # Changed from '/api/v1/' to avoid conflict with static files
     )
 
     # Register namespaces
