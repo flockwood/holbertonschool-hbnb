@@ -32,7 +32,8 @@ place_list_model = api.model('PlaceList', {
     'id': fields.String(description='Place ID'),
     'title': fields.String(description='Title of the place'),
     'latitude': fields.Float(description='Latitude'),
-    'longitude': fields.Float(description='Longitude')
+    'longitude': fields.Float(description='Longitude'),
+    'price': fields.Float(description='Price per night')  # ADDED THIS FIELD
 })
 
 # Output model for detailed place (PUBLIC - no authentication needed)
