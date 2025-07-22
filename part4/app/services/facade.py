@@ -212,13 +212,14 @@ class HBnBFacade:
         return result
 
     def get_all_places(self):
-        """Get all places (simple list)"""
+        """Get all places with basic info including price"""
         places = self.place_repo.get_all()
         return [{
             'id': place.id,
             'title': place.title,
             'latitude': place.latitude,
-            'longitude': place.longitude
+            'longitude': place.longitude,
+            'price': place.price  # ADDED PRICE HERE
         } for place in places]
 
     def update_place(self, place_id, place_data):
